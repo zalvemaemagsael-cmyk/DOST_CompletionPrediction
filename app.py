@@ -356,21 +356,36 @@ if len(latest) == 0:
     st.warning("No projects match the current filters. Adjust the filters in the sidebar.")
     st.stop()
 
-tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs(
-    [
-        "\U0001F4CA Risk Overview",
-        "\u26A0\uFE0F At-Risk Projects",
-        "\U0001F50E Project Risk Profile",
-        "\U0001F4C8 Risk Analytics",
-        "\U0001F6A8 Early Warning",
-        "\U0001F6E0\uFE0F Intervention Monitoring",
-    ]
+SECTION_NAV = [
+    ("overview", "\U0001F4CA Risk Overview"),
+    ("at-risk", "\u26A0\uFE0F At-Risk Projects"),
+    ("profile", "\U0001F50E Project Risk Profile"),
+    ("analytics", "\U0001F4C8 Risk Analytics"),
+    ("early-warning", "\U0001F6A8 Early Warning"),
+    ("intervention", "\U0001F6E0\uFE0F Intervention Monitoring"),
+]
+nav_html = "".join(
+    f'<a href="#{anchor}" style="margin-right:16px; color:#EAF1F8; text-decoration:none; '
+    f'font-size:0.82rem; font-weight:600; white-space:nowrap;">{label}</a>'
+    for anchor, label in SECTION_NAV
+)
+st.markdown(
+    f'<div style="background:{NAVY}; border-radius:8px; padding:10px 16px; '
+    f'display:flex; flex-wrap:wrap; gap:6px; margin-bottom:18px; position:sticky; top:0; z-index:999;">'
+    f"{nav_html}</div>",
+    unsafe_allow_html=True,
 )
 
+
+def section_anchor(anchor_id: str):
+    st.markdown(f'<div id="{anchor_id}"></div>', unsafe_allow_html=True)
+
+
 # ==========================================================================
-# TAB 1 - RISK OVERVIEW
+# SECTION 1 - RISK OVERVIEW
 # ==========================================================================
-with tab1:
+if True:
+    section_anchor("overview")
     st.subheader("Portfolio risk overview")
     st.markdown(
         '<div class="section-caption">Counts are by unique Project_ID (not monthly rows), '
@@ -390,52 +405,32 @@ with tab1:
     m4.metric("Critical projects", f"{n_critical}", f"{n_critical / n_total * 100:.0f}% of filtered set")
 
     st.markdown("")
-    c1, c2 = st.columns([1, 1.3])
-    with c1:
-        dist = latest["Risk_Tier"].value_counts().reindex(TIER_ORDER).fillna(0).astype(int)
-        fig = go.Figure(
-            go.Pie(
-                labels=dist.index,
-                values=dist.values,
-                hole=0.55,
-                marker=dict(colors=[TIER_COLORS[t] for t in dist.index]),
-                sort=False,
-            )
+    dist = latest["Risk_Tier"].value_counts().reindex(TIER_ORDER).fillna(0).astype(int)
+    fig = go.Figure(
+        go.Bar(
+            x=dist.index,
+            y=dist.values,
+            marker=dict(color=[TIER_COLORS[t] for t in dist.index]),
+            text=dist.values,
+            textposition="outside",
         )
-        fig.update_layout(
-            title="Risk distribution", height=340, margin=dict(t=50, b=10, l=10, r=10), showlegend=True
-        )
-        st.plotly_chart(fig, width="stretch")
-    with c2:
-        st.markdown("##### Top 5 highest-risk projects")
-        top5 = latest.head(5)
-        for _, row in top5.iterrows():
-            tier = row["Risk_Tier"]
-            st.markdown(
-                f"""
-                <div style="border:1px solid {TIER_COLORS[tier]}33; border-left:6px solid {TIER_COLORS[tier]};
-                            background:{TIER_BG[tier]}; border-radius:8px; padding:10px 14px; margin-bottom:8px;">
-                    <div style="display:flex; justify-content:space-between; align-items:center;">
-                        <div>
-                            <span style="font-size:0.72rem; color:#666; font-weight:700;">RANK #{row['Rank']}</span><br>
-                            <span style="font-size:0.98rem; font-weight:700;">{project_label(row)}</span><br>
-                            <span style="font-size:0.78rem; color:#555;">{row['Sector']} \u00b7 {row['Province']} \u00b7 {row['Size_Title']}</span>
-                        </div>
-                        <div style="text-align:right;">
-                            <span style="font-size:1.3rem; font-weight:800; color:{TIER_COLORS[tier]};">{row['Completion_Prob']*100:.1f}%</span><br>
-                            <span style="display:inline-block; padding:1px 9px; border-radius:10px; background:{TIER_COLORS[tier]};
-                                        color:white; font-size:0.7rem; font-weight:700;">{tier.upper()}</span>
-                        </div>
-                    </div>
-                </div>
-                """,
-                unsafe_allow_html=True,
-            )
+    )
+    fig.update_layout(
+        title="Risk distribution",
+        height=300,
+        margin=dict(t=50, b=10, l=10, r=10),
+        xaxis_title="",
+        yaxis_title="Projects",
+    )
+    st.plotly_chart(fig, width="stretch")
+
+st.divider()
 
 # ==========================================================================
-# TAB 2 - AT-RISK PROJECTS
+# SECTION 2 - AT-RISK PROJECTS
 # ==========================================================================
-with tab2:
+if True:
+    section_anchor("at-risk")
     st.subheader("At-risk projects")
     st.markdown(
         '<div class="section-caption">All projects classified Medium, High, or Critical, '
@@ -485,10 +480,13 @@ with tab2:
     )
     st.caption(f"Showing {len(display)} of {len(latest)} filtered projects.")
 
+st.divider()
+
 # ==========================================================================
-# TAB 3 - PROJECT RISK PROFILE
+# SECTION 3 - PROJECT RISK PROFILE
 # ==========================================================================
-with tab3:
+if True:
+    section_anchor("profile")
     st.subheader("Project risk profile")
     st.markdown(
         '<div class="section-caption">Select a project to inspect its predictors, risk drivers, '
@@ -597,10 +595,13 @@ with tab3:
         f"figure above ({row['Proponent_Equity_Share_Pct']:.1f}%) rather than a trend line."
     )
 
+st.divider()
+
 # ==========================================================================
-# TAB 4 - RISK ANALYTICS
+# SECTION 4 - RISK ANALYTICS
 # ==========================================================================
-with tab4:
+if True:
+    section_anchor("analytics")
     st.subheader("Where completion risk concentrates")
     st.markdown(
         '<div class="section-caption">Segment-level view to help target oversight. Province and '
@@ -655,26 +656,8 @@ with tab4:
     )
     fig_seg.update_traces(textposition="outside")
     st.plotly_chart(fig_seg, width="stretch")
+    st.caption("Hover over a bar for project counts, at-risk counts, and critical counts in that segment.")
 
-    st.markdown("##### Segment summary")
-    seg_display = seg.rename(
-        columns={
-            gcol: seg_choice,
-            "Avg_Completion_Pct": "Avg. Completion Probability %",
-            "Projects": "Projects",
-            "At_Risk": "At-Risk Projects",
-            "Critical": "Critical Projects",
-        }
-    )[[seg_choice, "Projects", "At-Risk Projects", "Critical Projects", "Avg. Completion Probability %"]]
-    st.dataframe(
-        seg_display.sort_values("Avg. Completion Probability %").style.format(
-            {"Avg. Completion Probability %": "{:.1f}%"}
-        ),
-        hide_index=True,
-        width="stretch",
-    )
-
-    st.markdown("---")
     st.markdown("##### Geographic risk view (province-level, illustrative)")
     st.caption(
         "Provincial tags in this dataset are synthetic / illustrative (assigned by keyword match "
@@ -733,10 +716,13 @@ with tab4:
     else:
         st.info("No mappable provinces in the current filtered set.")
 
+st.divider()
+
 # ==========================================================================
-# TAB 5 - EARLY WARNING
+# SECTION 5 - EARLY WARNING
 # ==========================================================================
-with tab5:
+if True:
+    section_anchor("early-warning")
     st.subheader("Early warning flags")
     st.markdown(
         '<div class="section-caption">Automatic flags derived from the model\'s monthly scores: '
@@ -819,10 +805,13 @@ with tab5:
             "months at High/Critical."
         )
 
+st.divider()
+
 # ==========================================================================
-# TAB 6 - INTERVENTION MONITORING
+# SECTION 6 - INTERVENTION MONITORING
 # ==========================================================================
-with tab6:
+if True:
+    section_anchor("intervention")
     st.subheader("Intervention monitoring")
     st.markdown(
         '<div class="section-caption">System-suggested monitoring workflow for at-risk projects. '
