@@ -692,31 +692,43 @@ with tab4:
     geo = geo.dropna(subset=["lat", "lon"])
 
     if len(geo) > 0:
-        fig_map = go.Figure(
-            go.Scattermapbox(
-                lat=geo["lat"], lon=geo["lon"],
-                mode="markers+text",
-                marker=dict(
-                    size=(geo["At_Risk"].clip(lower=1) * 4 + 10),
-                    color=geo["Avg_Completion_Pct"],
-                    colorscale=[[0, "#B3261E"], [0.5, "#C99A00"], [1, "#2E7D32"]],
-                    cmin=0, cmax=100, showscale=True,
-                    colorbar=dict(title="Avg %"),
-                ),
-                text=geo["Province"],
-                textposition="top center",
-                hovertext=[
-                    f"{p}<br>Projects: {n}<br>At-risk: {a}<br>Avg completion: {v:.1f}%"
-                    for p, n, a, v in zip(geo["Province"], geo["Projects"], geo["At_Risk"], geo["Avg_Completion_Pct"])
-                ],
-                hoverinfo="text",
+        marker_kwargs = dict(
+            size=(geo["At_Risk"].clip(lower=1) * 4 + 10),
+            color=geo["Avg_Completion_Pct"],
+            colorscale=[[0, "#B3261E"], [0.5, "#C99A00"], [1, "#2E7D32"]],
+            cmin=0, cmax=100, showscale=True,
+            colorbar=dict(title="Avg %"),
+        )
+        hovertext = [
+            f"{p}<br>Projects: {n}<br>At-risk: {a}<br>Avg completion: {v:.1f}%"
+            for p, n, a, v in zip(geo["Province"], geo["Projects"], geo["At_Risk"], geo["Avg_Completion_Pct"])
+        ]
+        common_kwargs = dict(
+            lat=geo["lat"], lon=geo["lon"],
+            mode="markers+text",
+            marker=marker_kwargs,
+            text=geo["Province"],
+            textposition="top center",
+            hovertext=hovertext,
+            hoverinfo="text",
+        )
+        # Plotly >=5.24 renamed the free (non-Mapbox-token) map trace/layout
+        # from Scattermapbox/"mapbox" to Scattermap/"map". Try the new API
+        # first and fall back to the older one for older Plotly installs.
+        try:
+            fig_map = go.Figure(go.Scattermap(**common_kwargs))
+            fig_map.update_layout(
+                map=dict(style="open-street-map", zoom=6.6, center=dict(lat=11.0, lon=122.6)),
+                height=430,
+                margin=dict(t=10, b=10, l=10, r=10),
             )
-        )
-        fig_map.update_layout(
-            mapbox=dict(style="open-street-map", zoom=6.6, center=dict(lat=11.0, lon=122.6)),
-            height=430,
-            margin=dict(t=10, b=10, l=10, r=10),
-        )
+        except AttributeError:
+            fig_map = go.Figure(go.Scattermapbox(**common_kwargs))
+            fig_map.update_layout(
+                mapbox=dict(style="open-street-map", zoom=6.6, center=dict(lat=11.0, lon=122.6)),
+                height=430,
+                margin=dict(t=10, b=10, l=10, r=10),
+            )
         st.plotly_chart(fig_map, width="stretch")
     else:
         st.info("No mappable provinces in the current filtered set.")
