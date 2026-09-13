@@ -193,9 +193,13 @@ scored, feat_cols = score_projects(panel_df, model)
 # ==========================================================================
 # 1. HEADLINE: the projects most likely to fail, and roughly why
 # ==========================================================================
-st.title("\U0001F6A8 MSME Project Risk Dashboard")
+st.title("\U0001F6A8 MSME Risk Management Dashboard")
+st.markdown(
+    "###### A centralized view of MSME projects at risk of incompletion \u2014 "
+    "evidence-based flags powered by Logistic Regression, built to support administrators' decision-making."
+)
 st.caption(
-    "Ranked by predicted risk of non-completion, using each project's most recent monthly record."
+    "Projects below are ranked by predicted risk of incompletion, using each project's most recent monthly record."
 )
 
 top3 = scored.head(3)
@@ -209,7 +213,7 @@ for col, (_, row) in zip(cols, top3.iterrows()):
                         background:{TIER_BG[tier]}; border-radius:8px; padding:14px 16px; height:100%;">
                 <div style="font-size:0.8rem; color:#666; font-weight:600;">RANK #{row['Rank']}</div>
                 <div style="font-size:1.05rem; font-weight:700; margin:2px 0 6px 0;">{project_label(row)}</div>
-                <div style="font-size:1.8rem; font-weight:800; color:{TIER_COLORS[tier]};">{row['Risk']*100:.1f}% risk</div>
+                <div style="font-size:1.8rem; font-weight:800; color:{TIER_COLORS[tier]};">{row['Risk']*100:.1f}% incompletion risk</div>
                 <div style="display:inline-block; margin:4px 0 8px 0; padding:2px 10px; border-radius:12px;
                             background:{TIER_COLORS[tier]}; color:white; font-size:0.75rem; font-weight:700;">
                     {tier.upper()}
@@ -225,7 +229,7 @@ for col, (_, row) in zip(cols, top3.iterrows()):
 
 st.markdown("")
 
-with st.expander("See full risk ranking (top 15)", expanded=False):
+with st.expander("See full incompletion-risk ranking (top 15)", expanded=False):
     top15 = scored.head(15).copy()
     top15_display = pd.DataFrame(
         {
@@ -234,9 +238,9 @@ with st.expander("See full risk ranking (top 15)", expanded=False):
             "Sector": top15["Sector"],
             "Province": top15["Province"],
             "Size": top15["Size_of_Enterprise"].str.title(),
-            "Risk %": (top15["Risk"] * 100).round(1),
+            "Incompletion Risk %": (top15["Risk"] * 100).round(1),
             "Tier": top15["Tier"],
-            "Why flagged": top15["Reason"],
+            "Evidence (why flagged)": top15["Reason"],
         }
     )
 
@@ -249,8 +253,8 @@ with st.expander("See full risk ranking (top 15)", expanded=False):
         hide_index=True,
         width="stretch",
         column_config={
-            "Risk %": st.column_config.ProgressColumn(
-                "Risk %", min_value=0, max_value=100, format="%.1f%%"
+            "Incompletion Risk %": st.column_config.ProgressColumn(
+                "Incompletion Risk %", min_value=0, max_value=100, format="%.1f%%"
             ),
         },
     )
@@ -261,6 +265,7 @@ st.divider()
 # 2. PORTFOLIO PULSE
 # ==========================================================================
 st.subheader("Portfolio pulse")
+st.caption("A quick read on overall portfolio health, for context on the flags above.")
 
 n_total = len(scored)
 n_high = int((scored["Tier"] == "High risk").sum())
@@ -271,8 +276,8 @@ n_below_1 = int((scored["Debt_Service_Coverage_Ratio"] < 1.0).sum())
 
 m1, m2, m3, m4 = st.columns(4)
 m1.metric("Projects tracked", f"{n_total}")
-m2.metric("High-risk projects", f"{n_high}", f"{pct_high:.0f}% of portfolio")
-m3.metric("Avg. predicted risk", f"{avg_risk:.1f}%")
+m2.metric("At risk of incompletion", f"{n_high}", f"{pct_high:.0f}% of portfolio")
+m3.metric("Avg. incompletion risk", f"{avg_risk:.1f}%")
 m4.metric("Below break-even DSCR (< 1.0\u00d7)", f"{n_below_1}", f"of {n_total}")
 
 st.divider()
@@ -280,7 +285,8 @@ st.divider()
 # ==========================================================================
 # 3. WHY: trend chart backing up the flags
 # ==========================================================================
-st.subheader("What the flagged projects' trends look like")
+st.subheader("Evidence behind the flags")
+st.caption("The trend data supporting each flag above, not just an asserted score.")
 
 n_trend = min(5, (scored["Tier"] == "High risk").sum() or 5)
 flagged_ids = scored.head(n_trend)["Project_ID"].tolist()
@@ -337,7 +343,8 @@ st.divider()
 # ==========================================================================
 # 4. SEGMENT VIEW (only where it adds insight: where does risk concentrate?)
 # ==========================================================================
-st.subheader("Where risk concentrates")
+st.subheader("Where incompletion risk concentrates")
+st.caption("A segment-level cut to help administrators target oversight where it matters most.")
 
 seg_choice = st.radio(
     "Group by", ["Sector", "Province", "Size_of_Enterprise"], horizontal=True, label_visibility="collapsed"
@@ -365,7 +372,7 @@ fig2 = px.bar(
 )
 fig2.update_layout(
     height=320,
-    xaxis_title="Average predicted risk (%)",
+    xaxis_title="Average incompletion risk (%)",
     yaxis_title="",
     coloraxis_showscale=False,
     margin=dict(t=10, b=10, l=10, r=10),
@@ -374,7 +381,8 @@ fig2.update_traces(textposition="outside")
 st.plotly_chart(fig2, width="stretch")
 
 st.caption(
-    "Model: StandardScaler + L1 logistic regression on debt-service coverage ratio, "
-    "owner's equity share, and pre-project capacity utilization. "
+    "Powered by a Logistic Regression model (debt-service coverage ratio, owner's equity share, "
+    "and pre-project capacity utilization) to give administrators an evidence-based, centralized "
+    "view of incompletion risk across the MSME project portfolio. "
     "This dataset is synthetic and for demonstration purposes only."
 )
